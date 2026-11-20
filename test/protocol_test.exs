@@ -13,6 +13,11 @@ defmodule RcCarWs.ProtocolTest do
              Protocol.decode(~s({"type":"motor_state","left":0,"right":0}))
   end
 
+  test "accepts shared VDO.Ninja view messages" do
+    assert {:ok, %{"type" => "vdo_view_set", "url" => "https://vdo.ninja/?view=car"}} =
+             Protocol.decode(~s({"type":"vdo_view_set","url":"https://vdo.ninja/?view=car"}))
+  end
+
   test "rejects motor values outside the direction range" do
     assert {:error, :invalid_message} =
              Protocol.decode(~s({"type":"motor_set","left":2,"right":0}))

@@ -27,5 +27,9 @@ defmodule RcCarWs.Protocol do
        when type in ["motor_set", "motor_state"] and left in [-1, 0, 1] and right in [-1, 0, 1],
        do: :ok
 
+  defp validate(%{"type" => "vdo_view_set", "url" => url})
+       when is_binary(url),
+       do: :ok
+
   defp validate(_message), do: {:error, :invalid_message}
 end

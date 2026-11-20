@@ -16,10 +16,19 @@ defmodule RcCarWs.Application do
 
     dispatch =
       :cowboy_router.compile([
-        {:_, [{"/ws", RcCarWs.Socket, []}]}
+        {:_,
+         [
+           {"/health", RcCarWs.Health, []},
+           {"/ws", RcCarWs.Socket, []}
+         ]}
       ])
 
-    case :cowboy.start_clear(@listener, [{:port, port()}], %{env: %{dispatch: dispatch}}) do
+    transport_options = [
+      {:ip, {0, 0, 0, 0}},
+      {:port, port()}
+    ]
+
+    case :cowboy.start_clear(@listener, transport_options, %{env: %{dispatch: dispatch}}) do
       {:ok, _pid} ->
         {:ok, supervisor}
 

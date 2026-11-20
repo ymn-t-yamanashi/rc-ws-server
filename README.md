@@ -16,7 +16,7 @@ XIAO ESP32-S3上のAtomVMとXRiftを中継する、独立したElixir WebSocket�
 XRift rc-world ⇄ WebSocket /ws ⇄ ws-server（PC） ⇄ WebSocket ⇄ atomvm-rc-car（XIAO）
 ```
 
-基本的な起動順は、`ws-server`、AtomVM、`rc-world`です。開発時は同一LAN内の`ws://`、公開XRiftから接続する場合はリバースプロキシでTLS終端して`wss://`を使用します。
+基本的な起動順は、`ws-server`、AtomVM、`rc-world`です。ローカルでは`ws://`、Cloud Runでは`wss://`を使用します。
 
 ## 起動
 
@@ -31,6 +31,28 @@ mix run --no-halt
 ```bash
 PORT=4000 mix run --no-halt
 ```
+
+起動確認は次のURLで行えます。
+
+```text
+http://localhost:4000/health
+```
+
+## Docker Compose
+
+Dockerでローカル起動する場合は、次のコマンドを実行します。
+
+```bash
+docker compose up --build
+```
+
+停止する場合は次のコマンドを実行します。
+
+```bash
+docker compose down
+```
+
+Docker起動時の接続先は`ws://localhost:4000/ws`です。
 
 ## メッセージ
 
@@ -58,4 +80,36 @@ AtomVMは適用後に次の状態を返します。
 
 ## HTTPS / WSS
 
-開発時は同一LAN内の`ws://`を使用します。公開XRiftから接続する場合は、Caddy等のTLS終端を前段に置き、XRiftからは`wss://`で接続してください。AtomVMの初期実装はLAN内の`ws://`接続を対象にします。
+開発時は同一LAN内の`ws://`を使用します。Cloud Runでは、Cloud RunがTLSを終端するため、コンテナ内はHTTPで待ち受け、外部からは`wss://`で接続します。
+
+## Google Cloud Run
+
+Artifact Registryへイメージを登録し、Cloud Runへデプロイします。
+
+```bash
+PROJECT_ID=<Google CloudのプロジェクトID>
+REGION=<Cloud Runのリージョン>
+REPOSITORY=<Artifact Registryのリポジトリ名>
+IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/rc-ws-server:latest"
+
+gcloud builds submit --tag "${IMAGE}"
+
+gcloud run deploy rc-ws-server \
+  --image "${IMAGE}" \
+  --region "${REGION}" \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080 \
+  --timeout 3600 \
+  --max 1 \
+  --concurrency 80 \
+  --session-affinity
+```
+
+デプロイ後に表示されるサービスURLを使い、XRiftとAtomVMの接続先を次の形式にします。
+
+```text
+wss://<Cloud RunのサービスURL>/ws
+```
+
+現在のサーバーは接続クライアントをメモリ内で管理しているため、初期運用では`--max 1`を必須にします。Cloud RunのWebSocket接続は最大60分で切断される可能性があるため、クライアント側は再接続できる構成にしてください。

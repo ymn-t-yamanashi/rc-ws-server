@@ -1,0 +1,7 @@
+.git
+.gitignore
+_build
+deps
+tmp
+tmp/bk
+*.log
